@@ -13,6 +13,6 @@ const adminSchema = new Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'CareTaker'
     }]
-})
+},{timestamps:true})
 const Admin = model('Admin',adminSchema)
 module.exports = Admin

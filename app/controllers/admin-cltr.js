@@ -22,7 +22,7 @@ adminCltr.getAllPetParents = async(req,res)=>{
 }
 adminCltr.verifyCareTaker = async(req,res)=>{
     try{
-        const admin = await Admin.findOne()
+        const admin = await CareTaker.findById()
         if(!admin){
             return res.status(500).json({ error: "Admin document not found" })
         }

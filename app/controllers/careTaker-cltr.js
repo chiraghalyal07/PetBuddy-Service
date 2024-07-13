@@ -1,20 +1,29 @@
 const CareTaker = require('../models/careTaker-model')
+const { validationResult } = require('express-validator');
 
 const careTakerCltr = {}
 
 careTakerCltr.create = async(req,res)=>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try{
-        const caretaker = new CareTaker(req.body)
+        const body = req.body
+        body.userId = req.user.id
+        const caretaker = new CareTaker(body)
         await caretaker.save()
-        res.status(201).json(caretaker)
+        const populateCareTaker = await CareTaker.findById(caretaker._id).populate('userId','username email phoneNumber')
+        res.status(201).json(populateCareTaker)
     }catch(err){
-        res.status(400).json({errors:errors.array()})
+        console.log(err.message)
+        res.status(500).json({ errors: 'something went wrong'})
     }
 }
 
 careTakerCltr.showall = async(req,res)=>{
     try{
-        const caretaker = await CareTaker.find()
+        const caretaker = await CareTaker.find().populate('userId','username email phoneNumber')
         res.status(200).json(caretaker)
     }catch(err){
         res.status(500).json({ errors: 'something went wrong'})
@@ -23,7 +32,7 @@ careTakerCltr.showall = async(req,res)=>{
 
 careTakerCltr.showone = async(req,res)=>{
     try{
-        const caretaker = await CareTaker.findById(req.params.id)
+        const caretaker = await CareTaker.findById(req.params.id).populate('userId','username email phoneNumber')
         if(!caretaker){
             return res.status(404).send()
         }
@@ -35,7 +44,7 @@ careTakerCltr.showone = async(req,res)=>{
 
 careTakerCltr.update = async(req,res)=>{
     try{
-        const caretaker = await CareTaker.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidation:true})
+        const caretaker = await CareTaker.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidation:true}).populate('userId','username email phoneNumber')
         if(!caretaker){
             return res.status(404).send()
         }
@@ -47,7 +56,7 @@ careTakerCltr.update = async(req,res)=>{
 
 careTakerCltr.delete = async(req,res)=>{
     try{
-        const caretaker = await CareTaker.findByIdAndDelete(req.params.id)
+        const caretaker = await CareTaker.findByIdAndDelete(req.params.id).populate('userId','username email phoneNumber')
         if(!caretaker){
             return res.status(404).send()
         }

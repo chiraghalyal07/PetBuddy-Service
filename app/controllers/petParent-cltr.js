@@ -1,20 +1,30 @@
 const PetParent = require('../models/petParent-model')
+const { validationResult } = require('express-validator');
 
 const petParentCltr = {}
 
 petParentCltr.create = async(req,res)=>{
+    const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //     console.log(errors.message)
+    //     return res.status(400).json({ errors: errors.array() });
+    // }
     try{
-        const petParent = new PetParent(req.body)
+        const body = req.body
+        body.userId = req.user.id
+        const petParent = new PetParent(body)
         await petParent.save()
-        res.status(201).json(petParent)
+        const populatePetParent = await PetParent.findById(petParent._id).populate('userId','username email phoneNumber')
+        res.status(201).json(populatePetParent)
+        // res.status(201).json(petParent)
     }catch(err){
-        res.status(400).json({errors:errors.array()})
+        res.status(500).json({ errors: 'something went wrong'})    
     }
 }
 
 petParentCltr.showall = async(req,res)=>{
     try{
-        const petParent = await PetParent.find()
+        const petParent = await PetParent.find().populate('userId','username email phoneNumber')
         res.status(200).json(petParent)
     }catch(err){
         res.status(500).json({ errors: 'something went wrong'})
@@ -23,7 +33,7 @@ petParentCltr.showall = async(req,res)=>{
 
 petParentCltr.showone = async(req,res)=>{
     try{
-        const petParent = await PetParent.findById(req.params.id)
+        const petParent = await PetParent.findById(req.params.id).populate('userId','username email phoneNumber')
         if(!petParent){
             return res.status(404).send()
         }
@@ -35,7 +45,7 @@ petParentCltr.showone = async(req,res)=>{
 
 petParentCltr.updateone = async(req,res)=>{
     try{
-        const petParent = await PetParent.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
+        const petParent = await PetParent.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true}).populate('userId','username email phoneNumber')
         if(!petParent){
             return res.status(404).send()
         }
@@ -47,7 +57,7 @@ petParentCltr.updateone = async(req,res)=>{
 
 petParentCltr.deleteone = async(req,res)=>{
     try{
-        const petParent = await PetParent.findByIdAndDelete(req.params.id)
+        const petParent = await PetParent.findByIdAndDelete(req.params.id).populate('userId','username email phoneNumber')
         if(!petParent){
             return res.status(404).send()
         }

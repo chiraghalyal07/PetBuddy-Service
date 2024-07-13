@@ -18,6 +18,6 @@ const petParentSchema = new Schema({
         type:String,
         required:true
     }
-})
-const PetParent = model('PetPearent',petParentSchema)
+},{timestamps:true})
+const PetParent = model('PetParent',petParentSchema)
 module.exports = PetParent
