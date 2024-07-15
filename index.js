@@ -10,6 +10,7 @@ require('dotenv').config()
  const adminCltr = require('./app/controllers/admin-cltr')
  const petCltr = require('./app/controllers/pet-cltr')
  const bookingCltr = require('./app/controllers/booking-cltr')
+ const reviewCltr = require('./app/controllers/review-cltr')
  const {userRegisteration,userLoginValidation,verifyOtpValidation,userUpdateValidation,userResetPassword} = require('./app/validations/user-validation')
  const {careTakerValidation,careTakerUpdateValidation} = require('./app/validations/careTaker-validations')
  const {petParentValidation,petParentUpdateValidation} = require('./app/validations/petParent-validations')
@@ -59,7 +60,11 @@ app.get('/api/single-booking',bookingCltr.showone)
 app.put('/api/update-booking',bookingCltr.updateone)
 app.delete('/api/delete-booking',bookingCltr.deleteone)
 //review
-
+app.post('/api/new-review',authenticateUser,authorizeUser(['petParent']),reviewCltr.create)
+app.get('/api/all-review',reviewCltr.getAll)
+app.get('/api/single-review',reviewCltr.getByCaretaker)
+app.put('/api/update-review',reviewCltr.update)
+app.delete('/api/delete-review',reviewCltr.delete)
 
  app.listen(port,()=>{
     console.log('Port running successfully on port number : ',port)
