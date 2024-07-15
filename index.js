@@ -9,9 +9,12 @@ require('dotenv').config()
  const careTakerCltr = require('./app/controllers/careTaker-cltr')
  const adminCltr = require('./app/controllers/admin-cltr')
  const petCltr = require('./app/controllers/pet-cltr')
+ const bookingCltr = require('./app/controllers/booking-cltr')
  const {userRegisteration,userLoginValidation,verifyOtpValidation,userUpdateValidation,userResetPassword} = require('./app/validations/user-validation')
  const {careTakerValidation,careTakerUpdateValidation} = require('./app/validations/careTaker-validations')
  const {petParentValidation,petParentUpdateValidation} = require('./app/validations/petParent-validations')
+ const {petValidation,petUpdateValidation} = require('./app/validations/pet-validations')
+ const {bookingValidation} = require('./app/validations/booking-validations')
  const authenticateUser = require('./app/middleware/authenticateUser')
  const authorizeUser = require('./app/middleware/authorizeUser')
 
@@ -44,7 +47,19 @@ require('dotenv').config()
  app.get('/api/admin/petparents',adminCltr.getAllPetParents)
  app.put('/api/admin/verify-caretakers/:id',adminCltr.verifyCareTaker)
  //Pets
- app.post('/api/newpet',authenticateUser,authorizeUser(['petParent']),petCltr.create)
+ app.post('/api/newpet',authenticateUser,authorizeUser(['petParent']),checkSchema(petValidation),petCltr.create)
+ app.get('/api/allpets',petCltr.showall)
+ app.get('/api/singlepet',petCltr.showone)
+ app.put('/api/updatepet',authenticateUser,authorizeUser(['petParent']),checkSchema(petUpdateValidation),petCltr.updateone)
+ app.delete('/api/deletepet',authenticateUser,authorizeUser(['petParent']),petCltr.deleteone)
+//Booking
+app.post('/api/new-booking/:id',authenticateUser,authorizeUser(['petParent']),bookingCltr.create)
+app.get('/api/all-booking',bookingCltr.showall)
+app.get('/api/single-booking',bookingCltr.showone)
+app.put('/api/update-booking',bookingCltr.updateone)
+app.delete('/api/delete-booking',bookingCltr.deleteone)
+//review
+
 
  app.listen(port,()=>{
     console.log('Port running successfully on port number : ',port)
