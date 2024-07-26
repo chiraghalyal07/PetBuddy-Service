@@ -28,14 +28,6 @@ const bookingSchema = new Schema({
         default: "pending"
     },
     totalAmount: Number,
-    isCheckedIn: {
-        type: Boolean,
-        default: false,
-    },
-    isCheckedOut: {
-        type: Boolean,
-        default: false,
-    },
     isDeleted: {
         type: Boolean,
         default: false,

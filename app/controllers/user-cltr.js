@@ -83,7 +83,7 @@ userCltr.registerOtpMail =async (username,email,role,otp) => {
     console.log(email,username)
     const html = `
     <p>Hi ${username}.<br/> Enter the  OTP to complete successfully registration to PetBuddy with role: ${role}.<br/> Your OTP is: ${otp}</p>
-       <p>Note: Donnot share otp with any one<br />The PetBuddy admin</p>
+       <p>Note: Donot share otp with any one<br />The PetBuddy admin</p>
     `;
     try{
         const info = await

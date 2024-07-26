@@ -20,16 +20,16 @@ const userRegisteration = {
         isEmail:{
             errorMessage:"Email Should be in valid format"
         },
-        custom:{
-            options:async(value)=>{
-                const user = await User.findOne({email:value})
-                if(user){
-                    throw new Error('This Email is Already Taken')
-                }else{
-                    return true
-                }
-            }
-        },
+        // custom:{
+        //     options:async(value)=>{
+        //         const user = await User.findOne({email:value})
+        //         if(user){
+        //             throw new Error('This Email is Already Taken')
+        //         }else{
+        //             return true
+        //         }
+        //     }
+        // },
         trim:true,
         normalizeEmail:true
     },
@@ -38,16 +38,16 @@ const userRegisteration = {
             errorMessage:"phoneNumber is required"
         },
         trim:true,
-        custom:{
-            options:async function(value){
-                const user=await User.findOne({phoneNumber:value})
-                if(!user){
-                    return true
-                }else{
-                    throw new Error("Mobile number already exist")
-                }
-            }
-        }
+        // custom:{
+        //     options:async function(value){
+        //         const user=await User.findOne({phoneNumber:value})
+        //         if(!user){
+        //             return true
+        //         }else{
+        //             throw new Error("Mobile number already exist")
+        //         }
+        //     }
+        // }
     },
     password:{
         exists:{

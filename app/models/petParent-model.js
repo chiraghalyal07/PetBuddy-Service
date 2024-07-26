@@ -6,7 +6,7 @@ const petParentSchema = new Schema({
         ref:"User",
         required:true
     },
-    parentPhoto:{
+    photo:{
         type:String,
         required:true
     },

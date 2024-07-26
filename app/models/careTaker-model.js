@@ -10,22 +10,10 @@ const careTakerSchema = new Schema({
         type:String,
         required:true
     },
-    // email:{
-    //     type:String,
-    //     required:true,
-    //     unique:true,
-    //     match: [/.+\@.+\..+/, 'Please fill a valid email address']
-    // },
     verifiedByAdmin:{
         type:Boolean,
         default:false
     },
-    // phoneNumber:{
-    //     type:String,
-    //     required:true,
-    //     minlength: 10,
-    //     maxlength: 15
-    // },
     address:{
         type:String,
         required:true

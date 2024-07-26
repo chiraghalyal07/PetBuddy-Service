@@ -1,128 +1,169 @@
-const CareTaker = require('../models/careTaker-model')
+const CareTaker = require('../models/careTaker-model');
+
 const careTakerValidation = {
-    userId:{
-        custom:{
-            options:async function(ele,{req}){
-                const caretaker = await CareTaker.findOne({userId:req.user.id})
-                if(caretaker){
-                    throw new Error("User exist already")
-                }else{
-                    return true
+    // userId: {
+    //     custom: {
+    //         options: async function (value, { req }) {
+    //             const caretaker = await CareTaker.findOne({ userId: req.user.id });
+    //             if (caretaker) {
+    //                 throw new Error("User already exists");
+    //             } else {
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // },
+    careTakerBusinessName: {
+        exists: {
+            errorMessage: "CareTaker name is required"
+        },
+        notEmpty: {
+            errorMessage: "CareTaker name cannot be blank"
+        },
+        trim: true
+    },
+    address: {
+        exists: {
+            errorMessage: "Address is required"
+        },
+        notEmpty: {
+            errorMessage: "Address cannot be empty"
+        },
+        trim: true
+    },
+    photo: {
+        custom: {
+            options: function (value, { req }) {
+                if (!req.files || !req.files.photo || req.files.photo.length === 0) {
+                    throw new Error("Photo is required");
                 }
+                return true;
             }
         }
     },
-    careTakerBusinessName:{
-        exists:{
-            errorMessage:"careTaker Name is Required"
-        },
-        notEmpty: {
-            errorMessage: 'careTakerName cannot be blank'
-        },
-        trim:true
+    proof: {
+        custom: {
+            options: function (value, { req }) {
+                if (!req.files || !req.files.proof || req.files.proof.length === 0) {
+                    throw new Error("Proof is required");
+                }
+                return true;
+            }
+        }
     },
-    address:{
+    bio: {
         exists: {
-            errorMessage: 'address is required'            
+            errorMessage: "Bio is required"
         },
         notEmpty: {
-            errorMessage: 'address cannot be empty'
+            errorMessage: "Bio cannot be empty"
         },
-        trim:true
+        trim: true
     },
-    photo:{
-        exists:{
-            errorMessage: 'photo is required'
-        },
-        notEmpty:{
-            errorMessage:'photo cannot be empty'
-        },
-        trim:true
-    },
-    proof:{
-        exists:{
-            errorMessage: 'proof is required'
-        },
-        notEmpty:{
-            errorMessage:'proof cannot be empty'
-        },
-        trim:true
-    },
-    bio:{
-        exists:{
-            errorMessage: 'Bio is required'
-        },
-        notEmpty:{
-            errorMessage:'Bio cannot be empty'
-        },
-        trim:true
-    },
-    // serviceCharges:{
+    serviceCharges: {
+        custom: {
+            options: (value) => {
+                try {
+                    // Check if value is a JSON string and parse it
+                    const serviceCharges = typeof value === 'string' ? JSON.parse(value) : value;
+                    // Validate that it's an array of objects with the required fields
+                    if (!Array.isArray(serviceCharges)) {
+                        throw new Error('Service charges must be an array.');
+                    }
+                    serviceCharges.forEach(charge => {
+                        if (typeof charge.name !== 'string' || typeof charge.amount !== 'number' || typeof charge.time !== 'string') {
+                            throw new Error('Each service charge must be an object with name (string), amount (number), and time (string).');
+                        }
+                    });
+                    return true;
+                } catch (error) {
+                    throw new Error('Service charges must be a valid JSON array of objects.');
+                }
+            }
+        }
+    }
+};
 
-    // } 
 
-}
-
-const careTakerUpdateValidation = {
-    careTakerBusinessName :{
+const careTakerUpdateValidation= {
+    careTakerBusinessName: {
+        optional: true,
         exists: {
-            errorMessage: 'careTakerName is required'
+            errorMessage: "CareTaker name is required"
         },
         notEmpty: {
-            errorMessage: 'careTakerName cannot be blank'
+            errorMessage: "CareTaker name cannot be blank"
         },
-        trim:true
+        trim: true
     },
-    phoneNumber:{
-        exists:{
-            errorMessage:'phoneNumber is required'
-        },
-        notEmpty:{
-            errorMessage:'phoneNumber cannot be empty'
-        },
-        trim:true
-    },
-    address:{
+    address: {
+        optional: true,
         exists: {
-            errorMessage: 'address is required'            
+            errorMessage: "Address is required"
         },
         notEmpty: {
-            errorMessage: 'address cannot be empty'
+            errorMessage: "Address cannot be empty"
         },
-        trim:true
+        trim: true
     },
-    photo:{
-        exists:{
-            errorMessage: 'photo is required'
-        },
-        notEmpty:{
-            errorMessage:'photo cannot be empty'
-        },
-        trim:true
+    photo: {
+        optional: true,
+        custom: {
+            options: function (value, { req }) {
+                if (req.files && req.files.photo && req.files.photo.length > 0) {
+                    return true;
+                }
+                return true;
+            }
+        }
     },
-    proof:{
-        exists:{
-            errorMessage: 'proof is required'
-        },
-        notEmpty:{
-            errorMessage:'proof cannot be empty'
-        },
-        trim:true
+    proof: {
+        optional: true,
+        custom: {
+            options: function (value, { req }) {
+                if (req.files && req.files.proof && req.files.proof.length > 0) {
+                    return true;
+                }
+                return true;
+            }
+        }
     },
-    bio:{
-        exists:{
-            errorMessage: 'Bio is required'
+    bio: {
+        optional: true,
+        exists: {
+            errorMessage: "Bio is required"
         },
-        notEmpty:{
-            errorMessage:'Bio cannot be empty'
+        notEmpty: {
+            errorMessage: "Bio cannot be empty"
         },
-        trim:true
+        trim: true
     },
-    // serviceCharges:{
+    serviceCharges: {
+        custom: {
+            options: (value) => {
+                try {
+                    // Check if value is a JSON string and parse it
+                    const serviceCharges = typeof value === 'string' ? JSON.parse(value) : value;
 
-    // } 
+                    // Validate that it's an array of objects with the required fields
+                    if (!Array.isArray(serviceCharges)) {
+                        throw new Error('Service charges must be an array.');
+                    }
 
-}
+                    serviceCharges.forEach(charge => {
+                        if (typeof charge.name !== 'string' || typeof charge.amount !== 'number' || typeof charge.time !== 'string') {
+                            throw new Error('Each service charge must be an object with name (string), amount (number), and time (string).');
+                        }
+                    });
+
+                    return true;
+                } catch (error) {
+                    throw new Error('Service charges must be a valid JSON array of objects.');
+                }
+            }
+        }
+    }
+};
 
 module.exports = {
     careTakerValidation,
