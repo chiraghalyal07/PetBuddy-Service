@@ -12,6 +12,7 @@ careTakerCltr.create = async(req,res)=>{
     }
     try{
         const { careTakerBusinessName,address, bio, serviceCharges } = req.body
+        console.log('serviceCharges',serviceCharges)
         const parsedServiceCharges = typeof serviceCharges === 'string'
         ? JSON.parse(serviceCharges)
         : serviceCharges;
@@ -87,6 +88,22 @@ careTakerCltr.showone = async(req,res)=>{
     }catch(error){
         res.status(500).json({ errors: 'something went wrong'})
     }
+}
+careTakerCltr.singlecareTaker = async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty) {
+        return res.status(400).json({ errors: errors.array() })
+    }
+    const body = req.body
+    try{ 
+        const caretaker=await CareTaker.findOne({userId:req.user.id}).populate('userId','email username phoneNumber')
+        if(!caretaker){
+            return res.json({error:'No records found'})
+        }
+     res.status(200).json(caretaker)
+   }catch(err){
+     res.status(500).json({error:'somthing went wrong'})
+   }
 }
 
 careTakerCltr.update = async (req, res) => {

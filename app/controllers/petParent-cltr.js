@@ -60,23 +60,6 @@ petParentCltr.create = async(req,res)=>{
         console.log(err.message)
         res.status(500).json({ errors: 'something went wrong'})
     }
-    /*
-    const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //     console.log(errors.message)
-    //     return res.status(400).json({ errors: errors.array() });
-    // }
-    try{
-        const body = req.body
-        body.userId = req.user.id
-        const petParent = new PetParent(body)
-        await petParent.save()
-        const populatePetParent = await PetParent.findById(petParent._id).populate('userId','username email phoneNumber')
-        res.status(201).json(populatePetParent)
-        // res.status(201).json(petParent)
-    }catch(err){
-        res.status(500).json({ errors: 'something went wrong'})    
-    }*/
 }
 
 petParentCltr.showall = async(req,res)=>{
@@ -99,18 +82,96 @@ petParentCltr.showone = async(req,res)=>{
         res.status(500).json({ errors: 'something went wrong'})
     }
 }
-
-petParentCltr.updateone = async(req,res)=>{
-    try{
-        const petParent = await PetParent.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true}).populate('userId','username email phoneNumber')
-        if(!petParent){
-            return res.status(404).send()
-        }
-        res.status(200).json(petParent)
-    }catch(err){
-        res.status(400).json({errors:errors.array()})
+petParentCltr.singlePetParent = async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty) {
+        return res.status(400).json({ errors: errors.array() })
     }
+    const body = req.body
+    try{ 
+        const petParent=await PetParent.findOne({userId:req.user.id}).populate('userId','email username phoneNumber')
+        if(!petParent){
+            return res.json({error:'No records found'})
+        }
+     res.status(200).json(petParent)
+   }catch(err){
+     res.status(500).json({error:'somthing went wrong'})
+   }
 }
+
+
+petParentCltr.updateone = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const { id } = req.params;
+        const { address, photo, proof } = req.body;
+
+        // Fetch the existing CareTaker record
+        const existingPetParent = await PetParent.findById(id);
+        
+        
+
+        // Merge the new data with existing data
+        const updateData = {
+            address: address || existingPetParent.address,
+            photo: photo || existingPetParent.photo,
+            proof:proof || existingPetParent.proof,
+            // Preserve existing photo and proof unless updated
+            photo: existingPetParent.photo,
+            proof: existingPetParent.proof,
+        };
+
+        // Handle profile photo upload if provided
+        if (req.files && req.files.photo && req.files.photo.length > 0) {
+            const photoFile = req.files.photo[0];
+            const photoOptions = {
+                folder: 'Pet-Buddy-PetParent/photo',
+                quality: 'auto',
+                
+            };
+
+            const photoResult = await uploadToCloudinary(photoFile.buffer, photoOptions);
+            console.log('Uploaded photo:', photoResult.secure_url);
+            updateData.photo = photoResult.secure_url; // Update photo URL
+        }
+
+        // Handle proof image upload if provided
+        if (req.files && req.files.proof && req.files.proof.length > 0) {
+            const proofFile = req.files.proof[0]; // Access the first file from the array
+            const proofOptions = {
+                folder: 'Pet-Buddy-PetParent/proof',
+                quality: 'auto',
+            };
+
+            const proofResult = await uploadToCloudinary(proofFile.buffer, proofOptions);
+            console.log('Uploaded proof:', proofResult.secure_url);
+            updateData.proof = proofResult.secure_url; // Update proof URL
+        }
+
+        // Update the CareTaker in the database
+        const updatedPetParent = await PetParent.findByIdAndUpdate(id, updateData, { new: true }).populate('userId', 'username email phoneNumber');
+
+        res.status(200).json(updatedPetParent);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ errors: 'Something went wrong' });
+    }
+};
+// petParentCltr.updateone = async(req,res)=>{
+//     try{
+//         const petParent = await PetParent.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true}).populate('userId','username email phoneNumber')
+//         if(!petParent){
+//             return res.status(404).send()
+//         }
+//         res.status(200).json(petParent)
+//     }catch(err){
+//         res.status(400).json({errors:errors.array()})
+//     }
+// }
 
 petParentCltr.deleteone = async(req,res)=>{
     try{
