@@ -7,7 +7,7 @@ const petSchema = new Schema({
         ref: "User"
     },
     petParentId: {
-        type: Schema.Types.ObjectId, // petParent-Details should be taken from backend
+        type: Schema.Types.ObjectId, // petParent-Details 
         ref: "PetParent"
     },
     petName: String,

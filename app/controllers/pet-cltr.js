@@ -16,8 +16,8 @@ petCltr.create = async (req, res) => {
         const userId = req.user.id;
         const body = req.body;
         body.userId = userId;
-        body.medication = JSON.parse(body.medication);
-        body.reminders = JSON.parse(body.reminders);
+        // body.medication = JSON.parse(body.medication);
+        // body.reminders = JSON.parse(body.reminders);
                 
         // Retrieve the petParentId from the database
         const petParent = await PetParent.findOne({ userId });
@@ -25,6 +25,18 @@ petCltr.create = async (req, res) => {
             return res.status(400).json({ errors: [{ msg: 'Pet Parent profile not found for this user.' }] });
         }
         body.petParentId = petParent._id;
+
+        // Parse medication and reminders fields if they are strings
+        try {
+            if (typeof body.medication === 'string') {
+                body.medication = JSON.parse(body.medication);
+            }
+            if (typeof body.reminders === 'string') {
+                body.reminders = JSON.parse(body.reminders);
+            }
+        } catch (parseError) {
+            return res.status(400).json({ errors: [{ msg: 'Invalid format for medication or reminders.' }] });
+        }
 
         // Handle file upload
         if (req.file) {
@@ -41,11 +53,11 @@ petCltr.create = async (req, res) => {
         // Create new pet with medication and reminders as arrays
         const newPet = new Pet(body);
         await newPet.save();
-        console.log(newPet);
+        console.log("New Pet Created",newPet);
 
         // Populate userId details
-        const populateBooking = await Pet.findById(newPet._id).populate('userId', 'username email phoneNumber') .populate('petParentId', 'address photo proof');
-        return res.json(populateBooking);
+        const populatepet = await Pet.findById(newPet._id).populate('userId', 'username email phoneNumber') .populate('petParentId', 'address photo proof');
+        return res.json(populatepet);
     } catch (err) {
         console.error('Error:', err.message);
         res.status(500).json({ error: 'Internal error' });

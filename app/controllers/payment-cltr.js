@@ -4,22 +4,31 @@ const stripe = require('stripe')(process.env.STRIPE_KEY)
 const { validationResult } = require('express-validator')
 const _= require('lodash')
 
-const paymentCntrl={}
+const paymentCltr={}
 
-paymentCntrl.pay = async(req,res)=>{
+paymentCltr.pay = async(req,res)=>{
     const errors = validationResult(req)
     if (!errors.isEmpty) {
         return res.status(400).json({ errors: errors.array() })
     }
-    const body = _.pick(req.body,['totalAmount','bookingId'])
-    console.log(body.totalAmount)
-    //const body = req.body
-   
-    const bookedID = req.query.bookingId
     try{
-       
-        const booking = await Booking.findById(bookedID)
-        console.log(bookedID)
+        const userId = req.user.id;
+        // Extract bookingId from request parameters
+        const { bookingId } = req.params;
+        console.log('userId:',userId);
+        console.log('bookingId:',bookingId)
+
+        // Find the booking record
+        const booking = await Booking.findById(bookingId).populate('userId caretakerId petId petparentId');
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+        console.log('booking Details:',booking)
+
+        // Extract necessary data from booking
+        const { caretakerId, petId, petparentId, totalAmount, bookingDurationInHours } = booking;
+
+        
         //create a customer
         const customer = await stripe.customers.create({
             name: "Testing",
@@ -50,21 +59,65 @@ paymentCntrl.pay = async(req,res)=>{
             cancel_url: 'http://localhost:3000/failure',
             customer : customer.id
         })
+
+        // Create Payment
+        const payment = new Payment({
+            userId,
+            caretakerId,
+            bookingId,
+            transactionId: session.id,
+            paymentType: "card",
+            amount: totalAmount,
+            paymentStatus: "pending"
+        });
+
+        await payment.save();
+         // Fetch the newly created payment with populated fields
+         const populatedPayment = await Payment.findById(payment._id)
+         .populate('userId caretakerId bookingId')
+         .exec();
+
+     res.json({
+         id: session.id,
+         url: session.url,
+         payment: populatedPayment
+     });
         
-     
-    //create Payment
-    const payment= new Payment()
-    payment.bookingId = bookingId
-    payment.transactionId=session.id
-    payment.amount= Number(body.totalAmount)
-    payment.paymentType="card"
-    await payment.save()
-    res.json({id:session.id,url:session.url})
-} catch(err){
-    console.log(err)
-    res.status(500).json({error:'Internal Server Error'})
+
+    }catch(err){
+        console.log(err);
+        res.status(500).json({error:'Internal Server Error'})
+    }
 }
 
-}
+paymentCltr.showall = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
 
-module.exports=paymentCntrl
+    try {
+        const userId = req.user.id;
+        // const userRole = req.user.role; // Extract role from token
+
+        let payments;
+
+        // if (userRole === 'petParent') {
+            // Fetch all payments made by this PetParent
+            payments = await Payment.find({ userId }).populate('userId caretakerId bookingId').exec();
+        // } else if (userRole === 'careTaker') {
+            // Fetch all payments received by this CareTaker
+            // payments = await Payment.find({ caretakerId: userId }).populate('userId caretakerId bookingId').exec();
+        // } else {
+            // return res.status(403).json({ message: 'Access denied' });
+        // }
+
+        res.json({ payments });
+
+    } catch (err) {
+        console.error('Error fetching payments:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+module.exports = paymentCltr

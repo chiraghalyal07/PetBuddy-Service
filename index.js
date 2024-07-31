@@ -13,7 +13,7 @@ require('dotenv').config()
  const petCltr = require('./app/controllers/pet-cltr')
  const bookingCltr = require('./app/controllers/booking-cltr')
  const reviewCltr = require('./app/controllers/review-cltr')
- const paymentCntrl = require('./app/controllers/payment-cltr')
+ const paymentCltr = require('./app/controllers/payment-cltr')
  //Validations
  const {userRegisteration,userLoginValidation,verifyOtpValidation,userUpdateValidation,userResetPassword} = require('./app/validations/user-validation')
  const {careTakerValidation,careTakerUpdateValidation} = require('./app/validations/careTaker-validations')
@@ -67,19 +67,21 @@ require('dotenv').config()
  app.put('/api/updatepet/:id',upload.single('petPhoto'),authenticateUser,authorizeUser(['petParent']),petCltr.update)
  app.delete('/api/deletepet/:id',authenticateUser,authorizeUser(['petParent']),petCltr.deleteone)
 //Booking
-app.post('/api/new-booking/:id',authenticateUser,authorizeUser(['petParent']),bookingCltr.create)
+app.post('/api/new-booking/:caretakerId',authenticateUser,authorizeUser(['petParent']),bookingCltr.create)
 app.get('/api/all-booking',bookingCltr.showall)
 app.get('/api/single-booking',bookingCltr.showone)
 app.put('/api/update-booking',bookingCltr.updateone)
 app.delete('/api/delete-booking',bookingCltr.deleteone)
+//payment
+app.post('/api/new-payment/:bookingId',authenticateUser,paymentCltr.pay)
+app.get('/api/all-payments',authenticateUser,paymentCltr.showall)
 //review
 app.post('/api/new-review',authenticateUser,authorizeUser(['petParent']),reviewCltr.create)
 app.get('/api/all-review',reviewCltr.getAll)
 app.get('/api/single-review/:id',reviewCltr.getByCaretaker)
 app.put('/api/update-review',reviewCltr.update)
 app.delete('/api/delete-review',reviewCltr.delete)
-//payment
-// app.post('/api/new-payment',paymentCntrl.pay)
+
 
  app.listen(port,()=>{
     console.log('Port running successfully on port number : ',port)

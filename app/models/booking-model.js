@@ -4,30 +4,55 @@ const { Schema, model } = mongoose;
 const bookingSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
-        ref: "User" // parentId
+        ref: "User",
+        required: true // userId
     },
     caretakerId: {
-        type: Schema.Types.ObjectId, // careTakerId
-        ref: "CareTaker"
+        type: Schema.Types.ObjectId, // Correct field name is `caretakerId`
+        ref: "CareTaker",
+        required: true
     },
     petId: {
         type: Schema.Types.ObjectId,
-        ref: "Pet"
+        ref: "Pet",
+        required: true
     },
     petparentId: {
         type: Schema.Types.ObjectId,
-        ref: "PetParent"
+        ref: "PetParent",
+        required: true
     },
-    category: String,
-    date: {
-        startTime: Date,
-        endTime: Date
+    category: {
+        type: String,
+        required: true
+    },
+    totalAmount: {
+        type: Number,
+        required: true
+    },
+    serviceName: {
+        type: String,
+        required: true
     },
     status: {
         type: String,
-        default: "pending"
+        enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+        default: 'pending'
     },
-    totalAmount: Number,
+    date: {
+        startTime: {
+            type: Date,
+            required: true
+        },
+        endTime: {
+            type: Date,
+            required: true
+        }
+    },
+    bookingDurationInHours: { 
+        type: Number,
+        required: true
+    },
     isDeleted: {
         type: Boolean,
         default: false,

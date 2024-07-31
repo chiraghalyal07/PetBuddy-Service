@@ -1,5 +1,7 @@
 const Booking = require('../models/booking-model');
 const CareTaker = require('../models/careTaker-model')
+const Pet = require('../models/pet-model')
+const PetParent = require('../models/petParent-model')
 const { validationResult } = require('express-validator');
 
 const bookingCltr = {};
@@ -7,52 +9,77 @@ const bookingCltr = {};
 bookingCltr.create = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        console.log(errors.message);
         return res.status(400).json({ errors: errors.array() });
     }
+    
     try {
-        const body = req.body;
-        body.userId = req.user.id;
-        const caretakerId = req.params.id; 
-        // const parentId = req.user.id; 
-        // console.log("parentid:",parentId)
-        // console.log("careTaker:",caretakerId)
+        const userId = req.user.id;
+        const { caretakerId } = req.params;
+        const { serviceName , date } = req.body;
 
+        console.log('serviceName :',serviceName);
+        console.log('received CareTakerId : ',caretakerId);
+
+        // Fetch CareTaker details
         const caretaker = await CareTaker.findById(caretakerId);
-        // console.log("careTaker:",caretaker)
         if (!caretaker) {
-            return res.status(404).json({ errors: 'Caretaker not found' });
+            return res.status(404).json({ errors: [{ msg: 'Caretaker not found' }] });
         }
-        const petParentId = body.petParentId;
-        const petId = body.petId;
 
-        const booking = new Booking(body);
-        // booking.parentId = parentId;
-        booking.caretakerId = caretaker;
-        booking.petparentId = petParentId;
-        // console.log("PETPARENT:",petParentId)
-        booking.petId = petId;
-        // console.log("PetId",petId)
-        await booking.save();
-        const populateBooking = await Booking.findById(booking._id)
-            .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'userId careTakerBusinessName bio address serviceCharges')
-            .populate('petId', 'petName category')
-            .populate('petparentId', ' address');
-        res.status(201).json(populateBooking);
+        // Fetch Pet and PetParent details
+        const pet = await Pet.findOne({ userId });
+        if (!pet) {
+            return res.status(404).json({ errors: [{ msg: 'Pet not found' }] });
+        }
+        const petParent = await PetParent.findById(pet.petParentId);
+        if (!petParent) {
+            return res.status(404).json({ errors: [{ msg: 'PetParent not found' }] });
+        }
+
+        // Find the service charge based on the serviceName
+        const serviceCharge = caretaker.serviceCharges.find(charge => charge.name === serviceName);
+        if (!serviceCharge) {
+            return res.status(400).json({ errors: 'Invalid service name.' });
+        }
+
+        // Calculate the hourly rate
+        const hourlyRate = serviceCharge.amount / serviceCharge.time;
+        console.log('hourlyRate : ',hourlyRate)
+        // Calculate the total booking time in hours
+        const startTime = new Date(date.startTime);
+        const endTime = new Date(date.endTime);
+        const bookingDurationInHours = (endTime - startTime) / (1000 * 60 * 60);
+        console.log('bookingDuration : ',bookingDurationInHours)
+        // Calculate the total amount based on the booking duration
+        const totalAmount = hourlyRate * bookingDurationInHours;
+        const category = pet.category;
+
+        const newBooking = new Booking({
+            userId,
+            caretakerId,
+            petId: pet._id,
+            petparentId: petParent._id,
+            date,
+            totalAmount: totalAmount,
+            serviceName: serviceName,
+            status:"pending",
+            bookingDurationInHours: bookingDurationInHours,
+            category
+        });
+
+        await newBooking.save();
+        const populatedBooking = await Booking.findById(newBooking._id).populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'address photo proof');
+
+        res.status(201).json(populatedBooking);
     } catch (err) {
         console.log(err.message);
-        res.status(500).json({ errors: 'something went wrong' });
+        res.status(500).json({ errors: 'Something went wrong' });
     }
 };
 
 bookingCltr.showall = async (req, res) => {
     try {
-        const bookings = await Booking.find()
-            .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'name contact')
-            .populate('petId', 'petName category')
-            .populate('parentId', 'parentName parentContact');
+        const bookings = await Booking.find().populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'address photo proof');
         res.status(200).json(bookings);
     } catch (err) {
         console.log(err.message);
