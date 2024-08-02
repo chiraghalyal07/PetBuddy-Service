@@ -1,5 +1,7 @@
-const Payment=require('../models/payment-model')
-const Booking =require('../models/booking-model')
+const Payment = require('../models/payment-model')
+const Booking = require('../models/booking-model')
+const User = require('../models/user-model')
+const nodemailer = require('nodemailer')
 const stripe = require('stripe')(process.env.STRIPE_KEY)
 const { validationResult } = require('express-validator')
 const _= require('lodash')
@@ -117,6 +119,113 @@ paymentCltr.showall = async (req, res) => {
     } catch (err) {
         console.error('Error fetching payments:', err);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+paymentCltr.successUpdate=async(req,res)=>{
+    try{
+        const id = req.params.id
+        const paymentRecord = await Payment.findOne({transactionId:id})
+        if(!paymentRecord){
+            return res.status(404).json({error:'record not found'})
+        }
+        //const body = pick(req.body,['paymentStatus'])
+        const updatedPayment = await Payment.findOneAndUpdate({transactionId:id}, {$set:{paymentStatus:'Successful'}},{new:true})
+        const updatedBooking = await Booking.findOneAndUpdate({_id:updatedPayment.bookingId},{$set:{status:'completed'}},{new:true}).populate('userId caretakerId petparentId');
+
+        // Extracting email and username for CareTaker and PetParent
+        const careTakerUser = await User.findById(updatedBooking.caretakerId.userId);
+        const petParentUser = await User.findById(updatedBooking.petparentId.userId);
+
+        // Send email to CareTaker
+        await paymentCltr.sendMail(
+            careTakerUser.email,
+            careTakerUser.username,
+            'Payment Successful',
+            `
+                
+                <p>Payment for the booking has been successfully processed. Maintain good service for good ratings and good earnings.</p>
+                
+            `
+        );
+
+        // Send email to PetParent
+        await paymentCltr.sendMail(
+            petParentUser.email,
+            petParentUser.username,
+            'Payment Successful',
+            `
+                
+                <p>Your payment has been successfully processed. Your pet is in good hands. Thank you for using PetBuddy.</p>
+                
+            `
+        );
+
+        res.json(updatedPayment)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({error:'Internal Server Error'})
+    }
+}
+paymentCltr.failedUpdate=async(req,res)=>{
+    try{
+        
+        // const body = _.pick(req.body,['paymentStatus'])
+        const id = req.params.id;
+        const updatedPayment = await Payment.findOneAndUpdate(
+            { transactionId: id },
+            { $set: { paymentStatus: "Failed" } },
+            { new: true }
+        ).populate('userId');
+
+        // Extracting email and username for PetParent
+        const petParentUser = await User.findById(updatedPayment.userId);
+
+        // Send email to PetParent
+        await paymentCltr.sendMail(
+            petParentUser.email,
+            petParentUser.username,
+            'Payment Failed',
+            `
+               
+                <p>We are sorry, but your payment has failed. Please try again later.</p>
+                
+            `
+        );
+
+        res.json(updatedPayment)
+    }catch(err){
+        console.log(err)
+        res.status(500).json({error:'Internal Server Error'})
+    }
+}
+paymentCltr.sendMail = async (email, username, subject, content) => {
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL,
+            pass: process.env.PASSWORD
+        }
+    });
+
+    const html = `
+        <h1>${subject}</h1>
+        <p>Dear ${username},</p>
+        ${content}
+        <p>Best Regards,<br />The PetBuddy Team</p>
+    `;
+
+    try {
+        const info = await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: subject,
+            html: html
+        });
+        console.log("Email sent", info.response);
+    } catch (error) {
+        console.log("Error sending email:", error);
     }
 };
 

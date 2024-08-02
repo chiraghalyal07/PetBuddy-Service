@@ -1,6 +1,21 @@
 const mongoose = require('mongoose');
 const { Schema, model } = mongoose;
 
+// const serviceSchema = new Schema({
+//     name: {
+//         type: String,
+//         required: true
+//     },
+//     amount: {
+//         type: Number,
+//         required: true
+//     },
+//     time: {
+//         type: Number, // Duration in hours
+//         required: true
+//     }
+// });
+
 const bookingSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
@@ -30,6 +45,7 @@ const bookingSchema = new Schema({
         type: Number,
         required: true
     },
+    // services: [serviceSchema], // Array of services
     serviceName: {
         type: String,
         required: true

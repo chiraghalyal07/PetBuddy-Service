@@ -1,7 +1,9 @@
 const Booking = require('../models/booking-model');
+const User = require('../models/user-model')
 const CareTaker = require('../models/careTaker-model')
 const Pet = require('../models/pet-model')
 const PetParent = require('../models/petParent-model')
+const nodemailer = require('nodemailer')
 const { validationResult } = require('express-validator');
 
 const bookingCltr = {};
@@ -25,6 +27,13 @@ bookingCltr.create = async (req, res) => {
         if (!caretaker) {
             return res.status(404).json({ errors: [{ msg: 'Caretaker not found' }] });
         }
+
+        // Extract email of the caretaker from userId
+        const caretakerUserId = caretaker.userId._id;
+        const caretakerUser = await User.findById(caretakerUserId);
+        const caretakerEmail = caretakerUser.email;
+
+        console.log('Caretaker Email:', caretakerEmail);
 
         // Fetch Pet and PetParent details
         const pet = await Pet.findOne({ userId });
@@ -69,6 +78,20 @@ bookingCltr.create = async (req, res) => {
 
         await newBooking.save();
         const populatedBooking = await Booking.findById(newBooking._id).populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'address photo proof');
+        
+        // Send email to the CareTaker
+        await bookingCltr.sendMail(caretakerEmail, caretakerUser.username, `New booking request`, `
+            
+            <p>You have received a new booking request. Please review the details below and accept or deny the booking.</p>
+            <p>Booking Details:</p>
+            <ul>
+                <li>Service Name: ${serviceName}</li>
+                <li>Start Time: ${startTime}</li>
+                <li>End Time: ${endTime}</li>
+                <li>Total Amount: ${totalAmount}</li>
+            </ul>
+            
+        `);
 
         res.status(201).json(populatedBooking);
     } catch (err) {
@@ -89,11 +112,8 @@ bookingCltr.showall = async (req, res) => {
 
 bookingCltr.showone = async (req, res) => {
     try {
-        const booking = await Booking.findById(req.params.id)
-            .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'name contact')
-            .populate('petId', 'petName category')
-            .populate('parentId', 'parentName parentContact');
+        const booking = await Booking.findById(req.params.id).populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'address photo proof');
+            
         if (!booking) {
             return res.status(404).json({ errors: 'Booking not found' });
         }
@@ -103,29 +123,23 @@ bookingCltr.showone = async (req, res) => {
         res.status(500).json({ errors: 'something went wrong' });
     }
 };
+bookingCltr.single = async (req,res) =>{
+    // const body = req.body
+    try{
+        console.log('User ID:', req.user.id);
+        const booking = await Booking.findOne({ userId: req.user.id }).populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'address photo proof');
+            
+        if (!booking) {
+            return res.status(404).json({ errors: 'Booking not found' });
+        }
+        res.status(200).json(booking);
 
-bookingCltr.updateone = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        console.log(errors.message);
-        return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-        const body = req.body;
-        const booking = await Booking.findByIdAndUpdate(req.params.id, body, { new: true })
-            .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'name contact')
-            .populate('petId', 'petName category')
-            .populate('parentId', 'parentName parentContact');
-        if (!booking) {
-            return res.status(404).json({ errors: 'Booking not found' });
-        }
-        res.status(200).json(booking);
-    } catch (err) {
+    }catch(err){
         console.log(err.message);
         res.status(500).json({ errors: 'something went wrong' });
     }
-};
+}
+
 
 bookingCltr.deleteone = async (req, res) => {
     try {
@@ -142,25 +156,44 @@ bookingCltr.deleteone = async (req, res) => {
 bookingCltr.acceptBooking = async (req, res) => {
     try {
         const bookingId = req.params.id;
-        const caretakerId = req.user.id; // Assuming the caretaker's ID is available in req.user.id
+        const userId = req.user.id; // Assuming the caretaker's ID is available in req.user.id
+        console.log('userId:',userId)
+
+        const careTaker = await CareTaker.findOne({userId})
+        if (!careTaker) {
+            return res.status(404).json({ errors: 'Caretaker not found' });
+        }
+        console.log('caretaker',careTaker)
+        console.log('careTakerId',careTaker._id)
 
         const booking = await Booking.findById(bookingId);
         if (!booking) {
             return res.status(404).json({ errors: 'Booking not found' });
         }
 
-        if (booking.caretakerId.toString() !== caretakerId) {
+        if (booking.caretakerId.toString() !== careTaker._id.toString()) {
             return res.status(403).json({ errors: 'You are not authorized to accept this booking' });
         }
 
         booking.Accepted = true;
         await booking.save();
 
-        const populateBooking = await Booking.findById(booking._id)
-            .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'name contact')
-            .populate('petId', 'petName category')
-            .populate('parentId', 'parentName parentContact');
+        const populateBooking = await Booking.findById(booking._id).populate('userId', 'username email phoneNumber').populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'userId address photo proof');
+        
+        // Find the userId of the pet parent who booked and extract the email
+        const petParentUserId = populateBooking.petparentId.userId;
+        const petParentUser = await User.findById(petParentUserId);
+        const petParentEmail = petParentUser.email;
+
+        console.log('PetParent Email:', petParentEmail);
+
+         // Send email to the PetParent
+         await bookingCltr.sendMail(petParentEmail, petParentUser.username, `Booking Accepted`, `
+         
+         
+         <p>Your booking request has been accepted. Please proceed with the payment process.</p>
+         
+     `);
 
         res.status(200).json(populateBooking);
     } catch (err) {
@@ -168,6 +201,109 @@ bookingCltr.acceptBooking = async (req, res) => {
         res.status(500).json({ errors: 'something went wrong' });
     }
 };
+
+bookingCltr.denyBooking = async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const userId = req.user.id; // Assuming the caretaker's ID is available in req.user.id
+
+        const careTaker = await CareTaker.findOne({ userId });
+        if (!careTaker) {
+            return res.status(404).json({ errors: 'Caretaker not found' });
+        }
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({ errors: 'Booking not found' });
+        }
+
+        if (booking.caretakerId.toString() !== careTaker._id.toString()) {
+            return res.status(403).json({ errors: 'You are not authorized to deny this booking' });
+        }
+
+        booking.Accepted = false;
+        await booking.save();
+
+        const populatedBooking = await Booking.findById(booking._id)
+            .populate('userId', 'username email phoneNumber')
+            .populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges')
+            .populate('petId', 'petName age gender category breed petPhoto weight')
+            .populate('petparentId', 'userId address photo proof');
+
+        // Find the userId of the pet parent who booked and extract the email
+        const petParentUserId = populatedBooking.petparentId.userId;
+        const petParentUser = await User.findById(petParentUserId);
+        const petParentEmail = petParentUser.email;
+
+        // Send denial email to the PetParent
+        await bookingCltr.sendMail(petParentEmail, petParentUser.username, `Booking Denied`, `
+            
+           
+            <p>Unfortunately, your booking request has been denied. Please change the time slot or try with a different caretaker.</p>
+           
+        `);
+
+        res.status(200).json(populatedBooking);
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ errors: 'something went wrong' });
+    }
+};
+
+bookingCltr.allCareTakerBooking = async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming the caretaker's ID is available in req.user.id
+        const caretaker = await CareTaker.findOne({ userId });
+
+        if (!caretaker) {
+            return res.status(404).json({ errors: 'Caretaker not found' });
+        }
+
+        const acceptedBookings = await Booking.find({ caretakerId: caretaker._id, Accepted: true })
+            .populate('userId', 'username email phoneNumber')
+            .populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges')
+            .populate('petId', 'petName age gender category breed petPhoto weight')
+            .populate('petparentId', 'address photo proof');
+
+        res.status(200).json(acceptedBookings);
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ errors: 'Something went wrong' });
+    }
+};
+bookingCltr.sendMail = async (email, username, subject, content) => {
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL,
+            pass: process.env.PASSWORD
+        }
+    });
+
+    const html = `
+        <h1>${subject}</h1>
+        <p>Dear ${username},</p>
+        ${content}
+        <p>Best Regards,<br />The PetBuddy Team</p>
+    `;
+
+    try {
+        const info = await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: subject,
+            html: html
+        });
+        console.log("Email sent", info.response);
+    } catch (error) {
+        console.log("Error sending email:", error);
+    }
+};
+
+module.exports = bookingCltr;
+
 
 
 module.exports = bookingCltr;
