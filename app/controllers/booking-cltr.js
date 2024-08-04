@@ -89,6 +89,9 @@ bookingCltr.create = async (req, res) => {
                 <li>Start Time: ${startTime}</li>
                 <li>End Time: ${endTime}</li>
                 <li>Total Amount: ${totalAmount}</li>
+                <li>Pet Parent: ${populatedBooking.userId.username}</li>
+                <li>Pet Name: ${pet.petName}</li>
+                <li>Category: ${pet.category}</li>
             </ul>
             
         `);
@@ -192,6 +195,7 @@ bookingCltr.acceptBooking = async (req, res) => {
          
          
          <p>Your booking request has been accepted. Please proceed with the payment process.</p>
+         <p>Booking accepted by: ${careTaker.careTakerBusinessName}</p>
          
      `);
 
@@ -254,14 +258,15 @@ bookingCltr.allCareTakerBooking = async (req, res) => {
     try {
         const userId = req.user.id; // Assuming the caretaker's ID is available in req.user.id
         const caretaker = await CareTaker.findOne({ userId });
+        console.log('user:',userId)
 
         if (!caretaker) {
             return res.status(404).json({ errors: 'Caretaker not found' });
         }
 
-        const acceptedBookings = await Booking.find({ caretakerId: caretaker._id, Accepted: true })
+        const acceptedBookings = await Booking.find({ caretakerId: caretaker._id})
             .populate('userId', 'username email phoneNumber')
-            .populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges')
+            .populate('caretakerId', 'careTakerBusinessName address')
             .populate('petId', 'petName age gender category breed petPhoto weight')
             .populate('petparentId', 'address photo proof');
 
@@ -301,9 +306,25 @@ bookingCltr.sendMail = async (email, username, subject, content) => {
         console.log("Error sending email:", error);
     }
 };
+bookingCltr.parentbooklist = async (req, res) => {
+    try {
+        const userIds = req.user.id; // Assuming the pet parent's ID is available in req.user.id
+        console.log('user:',userIds)
+        const bookings = await Booking.find({ userId: userIds })
+            .populate('userId', 'username email phoneNumber')
+            .populate('caretakerId', 'careTakerBusinessName verifiedByAdmin address bio photo proof serviceCharges')
+            .populate('petId', 'petName age gender category breed petPhoto weight')
+            .populate('petparentId', 'address photo proof');
+            
+
+        res.status(200).json(bookings);
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ errors: 'Something went wrong' });
+    }
+};
 
 module.exports = bookingCltr;
 
 
 
-module.exports = bookingCltr;

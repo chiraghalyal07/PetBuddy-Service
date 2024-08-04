@@ -97,25 +97,10 @@ paymentCltr.showall = async (req, res) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-
     try {
         const userId = req.user.id;
-        // const userRole = req.user.role; // Extract role from token
-
-        let payments;
-
-        // if (userRole === 'petParent') {
-            // Fetch all payments made by this PetParent
-            payments = await Payment.find({ userId }).populate('userId caretakerId bookingId').exec();
-        // } else if (userRole === 'careTaker') {
-            // Fetch all payments received by this CareTaker
-            // payments = await Payment.find({ caretakerId: userId }).populate('userId caretakerId bookingId').exec();
-        // } else {
-            // return res.status(403).json({ message: 'Access denied' });
-        // }
-
+        const payments = await Payment.find({ userId }).populate('userId caretakerId bookingId').exec();
         res.json({ payments });
-
     } catch (err) {
         console.error('Error fetching payments:', err);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -144,6 +129,7 @@ paymentCltr.successUpdate=async(req,res)=>{
             `
                 
                 <p>Payment for the booking has been successfully processed. Maintain good service for good ratings and good earnings.</p>
+                <p>Payment is done by the PetParent : ${petParentUser.username}</p>
                 
             `
         );

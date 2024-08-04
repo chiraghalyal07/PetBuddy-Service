@@ -86,6 +86,7 @@ careTakerCltr.showone = async(req,res)=>{
         }
         res.status(200).json(caretaker)
     }catch(error){
+        console.log(error)
         res.status(500).json({ errors: 'something went wrong'})
     }
 }
