@@ -90,7 +90,16 @@ careTakerCltr.create = async(req,res)=>{
 
 careTakerCltr.showall = async(req,res)=>{
     try{
-        const caretaker = await CareTaker.find({ verifiedByAdmin: true }).populate('userId','username email phoneNumber')
+        const search = req.query.search || '';
+        const searchRegex = new RegExp(search, 'i'); // 'i' makes it case-insensitive
+
+        const caretaker = await CareTaker.find(
+            { verifiedByAdmin: true ,
+            $or: [
+                { careTakerBusinessName: searchRegex },
+                { address: searchRegex }
+            ]
+        }).populate('userId','username email phoneNumber')
         res.status(200).json(caretaker)
     }catch(err){
         res.status(500).json({ errors: 'something went wrong'})

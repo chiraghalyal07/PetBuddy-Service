@@ -75,6 +75,7 @@ app.put('/api/accept-caretaker/:id',authenticateUser,bookingCltr.acceptBooking)
 app.put('/api/deny-caretaker/:id',authenticateUser,bookingCltr.denyBooking)
 app.get('/api/allcaretaker-booking',authenticateUser,bookingCltr.allCareTakerBooking)
 app.get('/api/booking-history-petparent',authenticateUser,bookingCltr.parentbooklist)
+app.get('/api/caretaker-book-count',bookingCltr.completedBookingsCount);
 // app.put('/api/update-booking',bookingCltr.updateone)
 app.delete('/api/delete-booking/:id',authenticateUser,bookingCltr.deleteone)
 //payment

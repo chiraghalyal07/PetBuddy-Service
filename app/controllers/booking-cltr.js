@@ -179,7 +179,7 @@ bookingCltr.single = async (req,res) =>{
     }
 }
 
-
+//delete is not done in front end
 bookingCltr.deleteone = async (req, res) => {
     try {
         const booking = await Booking.findByIdAndDelete(req.params.id);
@@ -361,6 +361,29 @@ bookingCltr.parentbooklist = async (req, res) => {
         res.status(500).json({ errors: 'Something went wrong' });
     }
 };
+bookingCltr.completedBookingsCount = async (req, res) => {
+    try {
+        const caretakers = await CareTaker.find();
+        
+        const counts = await Promise.all(caretakers.map(async (caretaker) => {
+            const count = await Booking.countDocuments({
+                caretakerId: caretaker._id,
+                status: 'completed'
+            });
+            return {
+                caretakerId: caretaker._id,
+                careTakerBusinessName: caretaker.careTakerBusinessName,
+                completedBookings: count
+            };
+        }));
+
+        res.status(200).json(counts);
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ errors: 'Something went wrong' });
+    }
+};
+
 
 module.exports = bookingCltr;
 
