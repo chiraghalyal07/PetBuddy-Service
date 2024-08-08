@@ -5,6 +5,7 @@ const Pet = require('../models/pet-model')
 const PetParent = require('../models/petParent-model')
 const nodemailer = require('nodemailer')
 const { validationResult } = require('express-validator');
+const cron = require('node-cron')
 
 const bookingCltr = {};
 
@@ -54,11 +55,13 @@ bookingCltr.create = async (req, res) => {
         // Calculate the hourly rate
         const hourlyRate = serviceCharge.amount / serviceCharge.time;
         console.log('hourlyRate : ',hourlyRate)
+
         // Calculate the total booking time in hours
         const startTime = new Date(date.startTime);
         const endTime = new Date(date.endTime);
         const bookingDurationInHours = (endTime - startTime) / (1000 * 60 * 60);
         console.log('bookingDuration : ',bookingDurationInHours)
+
         // Calculate the total amount based on the booking duration
         const totalAmount = hourlyRate * bookingDurationInHours;
         const category = pet.category;
@@ -73,7 +76,8 @@ bookingCltr.create = async (req, res) => {
             serviceName: serviceName,
             status:"pending",
             bookingDurationInHours: bookingDurationInHours,
-            category
+            category,
+            createdAt: new Date()
         });
 
         await newBooking.save();
@@ -95,6 +99,38 @@ bookingCltr.create = async (req, res) => {
             </ul>
             
         `);
+
+        // Set up a cron job to check the status of the booking every hour
+        cron.schedule('0 * * * *', async () => {
+            const booking = await Booking.findById(newBooking._id);
+
+            if (booking.status === 'pending' && (new Date() - booking.createdAt) >= 10 * 60 * 60 * 1000) {
+                // Reject the booking after 10 hours
+                booking.status = 'cancelled';
+                booking.Accepted = false;
+                await booking.save();
+
+                // Notify the PetParent
+                const petParentUser = await User.findById(booking.petparentId.userId);
+                await bookingCltr.sendMail(petParentUser.email, petParentUser.username, `Booking Rejected`, `
+                    <p>Sorry for the inconvenience, your booking has been rejected. Please select another CareTaker. Thanks for using PetBuddy.</p>
+                `);
+            } else if (booking.status === 'pending') {
+                // Send reminder email every hour
+                await bookingCltr.sendMail(caretakerEmail, caretakerUser.username, `Reminder: Pending Booking`, `
+                    <p>This is a reminder to review the pending booking request.</p>
+                    <p>Booking Details:</p>
+                    <ul>
+                        <li>Service Name: ${serviceName}</li>
+                        <li>Start Time: ${startTime}</li>
+                        <li>End Time: ${endTime}</li>
+                        <li>Total Amount: ${totalAmount}</li>
+                    </ul>
+                `);
+            }
+        });
+
+
 
         res.status(201).json(populatedBooking);
     } catch (err) {
@@ -177,6 +213,7 @@ bookingCltr.acceptBooking = async (req, res) => {
         if (booking.caretakerId.toString() !== careTaker._id.toString()) {
             return res.status(403).json({ errors: 'You are not authorized to accept this booking' });
         }
+        booking.status = "confirmed"
 
         booking.Accepted = true;
         await booking.save();
@@ -224,6 +261,7 @@ bookingCltr.denyBooking = async (req, res) => {
         if (booking.caretakerId.toString() !== careTaker._id.toString()) {
             return res.status(403).json({ errors: 'You are not authorized to deny this booking' });
         }
+        booking.status = "cancelled"
 
         booking.Accepted = false;
         await booking.save();

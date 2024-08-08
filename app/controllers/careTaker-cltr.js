@@ -1,7 +1,8 @@
 const CareTaker = require('../models/careTaker-model')
 const { validationResult } = require('express-validator');
-const _ = require('lodash')
-const {uploadToCloudinary} = require('../utility/cloudinary')
+const _ = require('lodash');
+const {uploadToCloudinary} = require('../utility/cloudinary');
+// const fetch = require('node-fetch');
 
 const careTakerCltr = {}
 
@@ -17,13 +18,31 @@ careTakerCltr.create = async(req,res)=>{
         ? JSON.parse(serviceCharges)
         : serviceCharges;
 
+         // Get the coordinates from the provided address using OpenCage Geocoder API
+         const apiKey = process.env.GEOAPIKEY;  // Replace with your OpenCage API key
+         const geocodeUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${apiKey}`;
+ 
+         const geocodeResponse = await fetch(geocodeUrl);
+         const geocodeData = await geocodeResponse.json();
+ 
+         if (geocodeData.results.length === 0) {
+             return res.status(400).json({ errors: [{ msg: 'Invalid address' }] });
+         }
+ 
+         const { lat, lng } = geocodeData.results[0].geometry;
+
         const newCareTaker = new CareTaker({
             userId: req.user.id,
             careTakerBusinessName,
             address,
             bio,
-            serviceCharges: parsedServiceCharges
+            serviceCharges: parsedServiceCharges,
+            location: {
+                type: 'Point',
+                coordinates: [lng, lat]
+            }
         });
+        console.log('lat : ',lat ,"lng : ",lng)
 
         // Handle profile photo upload
         if (req.files && req.files.photo && req.files.photo.length > 0) {
@@ -82,7 +101,7 @@ careTakerCltr.showone = async(req,res)=>{
     try{
         const caretaker = await CareTaker.findById(req.params.id).populate('userId','username email phoneNumber')
         if(!caretaker){
-            return res.status(404).send()
+            return res.status(404).json({error:'No records found'})
         }
         res.status(200).json(caretaker)
     }catch(error){
@@ -127,16 +146,39 @@ careTakerCltr.update = async (req, res) => {
             return res.status(404).json({ errors: [{ msg: 'CareTaker not found' }] });
         }
 
+         // Get the coordinates from the provided address if address is updated
+         let location = existingCareTaker.location;
+         if (address && address !== existingCareTaker.address) {
+             const apiKey =  process.env.GEOAPIKEY;  // Replace with your OpenCage API key
+             const geocodeUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${apiKey}`;
+ 
+             const geocodeResponse = await fetch(geocodeUrl);
+             const geocodeData = await geocodeResponse.json();
+ 
+             if (geocodeData.results.length === 0) {
+                 return res.status(400).json({ errors: [{ msg: 'Invalid address' }] });
+             }
+ 
+             const { lat, lng } = geocodeData.results[0].geometry;
+             location = {
+                 type: 'Point',
+                 coordinates: [lng, lat]
+             };
+             console.log('lat : ',lat ,"lng : ",lng)
+         }
+
         // Merge the new data with existing data
         const updateData = {
             careTakerBusinessName: careTakerBusinessName || existingCareTaker.careTakerBusinessName,
             address: address || existingCareTaker.address,
             bio: bio || existingCareTaker.bio,
             serviceCharges: parsedServiceCharges || existingCareTaker.serviceCharges,
+            location: location,
             // Preserve existing photo and proof unless updated
             photo: existingCareTaker.photo,
             proof: existingCareTaker.proof,
         };
+        
 
         // Handle profile photo upload if provided
         if (req.files && req.files.photo && req.files.photo.length > 0) {

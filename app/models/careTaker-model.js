@@ -43,7 +43,12 @@ const careTakerSchema = new Schema({
             type: String,
             required: true
         }
-    }]
+    }],
+    location: {
+        type: { type: String, enum: ['Point'], required: true },
+        coordinates: { type: [Number], required: true },
+      }
+      
 },{timestamps:true})
 // careTakerSchema.index({ email: 1 }); // Adding an index on email
 const CareTaker = model('CareTaker',careTakerSchema)

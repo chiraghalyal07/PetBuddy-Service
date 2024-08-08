@@ -57,8 +57,8 @@ paymentCltr.pay = async(req,res)=>{
                 quantity: 1
             }],
             mode:"payment",
-            success_url:"http://localhost:3000/success",
-            cancel_url: 'http://localhost:3000/failure',
+            success_url:"http://localhost:3000/success?clientSecret={CHECKOUT_SESSION_ID}",
+            cancel_url: 'http://localhost:3000/failure?session_id={CHECKOUT_SESSION_ID}',
             customer : customer.id
         })
 
@@ -80,7 +80,7 @@ paymentCltr.pay = async(req,res)=>{
          .exec();
 
      res.json({
-         id: session.id,
+        clientSecret: session.id,
          url: session.url,
          payment: populatedPayment
      });
@@ -114,7 +114,7 @@ paymentCltr.successUpdate=async(req,res)=>{
             return res.status(404).json({error:'record not found'})
         }
         //const body = pick(req.body,['paymentStatus'])
-        const updatedPayment = await Payment.findOneAndUpdate({transactionId:id}, {$set:{paymentStatus:'Successful'}},{new:true})
+        const updatedPayment = await Payment.findOneAndUpdate({transactionId:id}, {$set:{paymentStatus:'Successful'}},{new:true}).populate('bookingId')
         const updatedBooking = await Booking.findOneAndUpdate({_id:updatedPayment.bookingId},{$set:{status:'completed'}},{new:true}).populate('userId caretakerId petparentId');
 
         // Extracting email and username for CareTaker and PetParent
@@ -161,7 +161,8 @@ paymentCltr.failedUpdate=async(req,res)=>{
             { transactionId: id },
             { $set: { paymentStatus: "Failed" } },
             { new: true }
-        ).populate('userId');
+        ).populate('bookingId')
+        const updatedBooking = await Booking.findOneAndUpdate({_id:updatedPayment.bookingId},{$set:{status:'cancelled'}},{new:true}).populate('userId caretakerId petparentId')
 
         // Extracting email and username for PetParent
         const petParentUser = await User.findById(updatedPayment.userId);
