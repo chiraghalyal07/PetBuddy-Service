@@ -47,18 +47,20 @@ require('dotenv').config()
  app.get('/api/singleparent/:id',petParentCltr.showone)
  app.get('/api/single-parent',authenticateUser,petParentCltr.singlePetParent)
  app.put('/api/updateparent/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'proof', maxCount: 1 }]),authenticateUser,authorizeUser(['petParent']),petParentCltr.updateone)
- app.delete('/api/deleteparent/:id',authenticateUser,authorizeUser(['petParent']),petParentCltr.deleteone)
+ app.delete('/api/deleteparent/:id',authenticateUser,authorizeUser(['admin']),petParentCltr.deleteone)
  //caretaker
  app.post('/api/newcaretaker',upload.fields([{name:'photo',maxCount:1},{name:'proof',maxCount:1}]),authenticateUser,authorizeUser(['careTaker']),careTakerCltr.create)
  app.get('/api/allcaretakers',careTakerCltr.showall)
  app.get('/api/singlecaretaker/:id',careTakerCltr.showone)
  app.get('/api/single-care-taker',authenticateUser,careTakerCltr.singlecareTaker)
  app.put('/api/updatecaretaker/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'proof', maxCount: 1 }]),authenticateUser,authorizeUser(['careTaker']),careTakerCltr.update)
- app.delete('/api/deletecaretaker/:id',authenticateUser,authorizeUser(['careTaker']),careTakerCltr.delete)
+ app.delete('/api/deletecaretaker/:id',authenticateUser,authorizeUser(['careTaker','admin']),careTakerCltr.delete)
  //admin
  app.get('/api/admin/caretakers',adminCltr.getAllCareTakers)
  app.get('/api/admin/petparents',adminCltr.getAllPetParents)
+ app.get('/api/admin/pets',adminCltr.getAllPets)
  app.put('/api/admin/verify-caretakers/:id',adminCltr.verifyCareTaker)
+ app.get('/api/admin/counts',adminCltr.getCounts)
  //Pets
  app.post('/api/newpet',upload.single('petPhoto'),authenticateUser,authorizeUser(['petParent']),petCltr.create)
  app.get('/api/allpets',petCltr.showall)
@@ -84,11 +86,15 @@ app.get('/api/all-payments',authenticateUser,paymentCltr.showall)
 app.put('/api/payment-success/:id',paymentCltr.successUpdate)
 app.put('/api/payment-failed/:id',paymentCltr.failedUpdate)
 //review
-app.post('/api/new-review',authenticateUser,authorizeUser(['petParent']),reviewCltr.create)
-app.get('/api/all-review',reviewCltr.getAll)
-app.get('/api/single-review/:id',reviewCltr.getByCaretaker)
-app.put('/api/update-review',reviewCltr.update)
-app.delete('/api/delete-review',reviewCltr.delete)
+app.post('/review/:bookingId',upload.single('photos'), authenticateUser, authorizeUser(['petParent']), reviewCltr.create);
+app.get('/all/review',reviewCltr.getAll)
+app.get('/singleReview/:caretakerId', authenticateUser,  authorizeUser(['petParent','careTaker']),reviewCltr.getByCaretaker);
+app.get('/review/:reviewId', authenticateUser, authorizeUser(['petParent', 'careTaker']), reviewCltr.getReviewById);
+//app.get('/caretaker-ratings/:caretakerId', reviewCntrl.getCaretakerRatings);
+app.get('/caretaker-ratings/:caretakerId', reviewCltr.getCaretakerRatings);
+// app.get('/api/care-rate',reviewCltr.totalCareRate)
+app.post('/send-warning/:caretakerId',reviewCltr.sendWarningEmail);
+app.put('/update/:reviewId',upload.single('photos'),authenticateUser,authorizeUser(['petParent','admin']),reviewCltr.update)
 
 
  app.listen(port,()=>{

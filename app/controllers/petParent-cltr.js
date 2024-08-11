@@ -72,10 +72,14 @@ petParentCltr.showall = async(req,res)=>{
 }
 
 petParentCltr.showone = async(req,res)=>{
+    const errors = validationResult(req)
+    if (!errors.isEmpty) {
+        return res.status(400).json({ errors: errors.array() })
+    }
     try{
-        const petParent = await PetParent.findById(req.params.id).populate('userId','username email phoneNumber')
+        const petParent = await PetParent.findById(req.params.id).populate('userId','username email phoneNumber isVerified')
         if(!petParent){
-            return res.status(404).send()
+            return res.status(404).json({error:'No records found'})
         }
         res.status(200).json(petParent)
     }catch(err){

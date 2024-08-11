@@ -1,5 +1,5 @@
-const mongoose = require('mongoose')
-const {Schema ,model}= mongoose
+const mongoose = require('mongoose');
+const { Schema, model } = mongoose;
 
 const reviewSchema = new Schema({
     userId: {
@@ -8,30 +8,40 @@ const reviewSchema = new Schema({
         required: true
     },
     caretakerId: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "CareTaker",
         required: true
+    },
+    petId:{
+        type:Schema.Types.ObjectId,
+        ref:"Pet",
+        required:true
+    },
+    petparentId:{
+        type:Schema.Types.ObjectId,
+        ref:"PetParent",
+        required:true
     },
     bookingId: {
         type: Schema.Types.ObjectId,
         ref: "Booking",
         required: true
     },
-    photo:{
-        type:String
-    },
-    rating: {
+    ratings: {
         type: Number,
         required: true,
         min: 1,
         max: 5
     },
-    comment: {
+    description: {
         type: String,
         required: true,
         trim: true
     },
+    photos: {
+        type: String
+    }
+}, { timestamps: true });
 
-},{timestamps:true})
-const Review = model('Review',reviewSchema)
-module.exports = Review
+const Review = model('Review', reviewSchema);
+module.exports = Review;
