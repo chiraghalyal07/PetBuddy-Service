@@ -103,7 +103,7 @@ reviewCltr.getAll = async (req, res) => {
         .populate('petId', 'petName age gender categories breed petPhoto weight vaccinated')
         .populate('petparentId', 'address parentPhoto proof')
         .populate('bookingId','startTime endTime bookingDurationInHours status totalAmount Accepted')
-        .sort({ rating: -1 })
+        .sort({'ratings':-1});
         console.log('rev',reviews)
 
             res.status(201).json(reviews);

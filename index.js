@@ -33,6 +33,7 @@ require('dotenv').config()
 
 
  app.post('/user/register',checkSchema(userRegisteration),userCltr.register)
+ app.get('/user/check-admin',userCltr.checkAdminAvailability)
 //  app.post('/user/generateOtp',userCltr.generateOtp)
  app.post('/user/verify',checkSchema(verifyOtpValidation),userCltr.verify)
  app.post('/user/login',checkSchema(userLoginValidation),userCltr.login)
@@ -55,6 +56,7 @@ require('dotenv').config()
  app.get('/api/single-care-taker',authenticateUser,careTakerCltr.singlecareTaker)
  app.put('/api/updatecaretaker/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'proof', maxCount: 1 }]),authenticateUser,authorizeUser(['careTaker']),careTakerCltr.update)
  app.delete('/api/deletecaretaker/:id',authenticateUser,authorizeUser(['careTaker','admin']),careTakerCltr.delete)
+ app.get(`/api/show-service`,careTakerCltr.showservice)
  //admin
  app.get('/api/admin/caretakers',adminCltr.getAllCareTakers)
  app.get('/api/admin/petparents',adminCltr.getAllPetParents)

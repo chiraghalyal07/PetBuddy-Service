@@ -26,7 +26,7 @@ adminCltr.getAllPetParents = async(req,res)=>{
 }
 adminCltr.getAllPets = async(req,res)=>{
     try{
-        const pets = await Pet.find().populate('userId', 'username email phoneNumber').populate('petId', 'petName age gender category breed petPhoto weigth').populate('petparentId', 'userId address photo proof');
+        const pets = await Pet.find().populate('userId', 'username email phoneNumber').populate('petparentId', 'userId address photo proof');
         res.status(200).json(pets)
     }catch(error){
         res.status(500).json({ errors: 'something went wrong'})

@@ -73,17 +73,22 @@ petCltr.showall = async (req,res)=>{
         res.status(500).json({errors:"Something went wrong"})
     }
 }
-petCltr.showone = async (req,res) =>{
-    try{
-        const pets = await Pet.findById(req.params.id).populate('userId','username email phoneNumber').populate('petParentId','address photo proof');
-        if(!pets){
-            return res.status(404).json({errors:"Pet not found"})
+petCltr.showone = async (req, res) => {
+    try {
+        const petParentId = req.params.id; // Assuming petParentId is passed as a parameter in the URL
+        const pets = await Pet.findOne({ petParentId })
+            .populate('userId', 'username email phoneNumber')
+            .populate('petParentId', 'address photo proof');
+        
+        if (!pets) {
+            return res.status(404).json({ errors: "Pet not found" });
         }
-        res.status(200).json(pets)
-    }catch(err){
-        res.status(500).json({errors:"Something went wrong"})
+        res.status(200).json(pets);
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).json({ errors: "Something went wrong" });
     }
-}
+};
 
 petCltr.singelPet=async(req,res)=>{
     try {

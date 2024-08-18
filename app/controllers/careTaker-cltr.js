@@ -97,15 +97,30 @@ careTakerCltr.showall = async(req,res)=>{
             { verifiedByAdmin: true ,
             $or: [
                 { careTakerBusinessName: searchRegex },
-                { address: searchRegex }
+                { address: searchRegex },
+                {'serviceCharges.name':searchRegex}
             ]
         }).populate('userId','username email phoneNumber')
+          .sort({'rating':-1});
         res.status(200).json(caretaker)
     }catch(err){
         res.status(500).json({ errors: 'something went wrong'})
     }
 }
-
+careTakerCltr.showservice = async(req,res)=>{
+    try{
+        const search = req.query.search || '';
+        const searchRegex = new RegExp(search, 'i');
+        const caretaker = await CareTaker.find({
+            verifiedByAdmin:true,
+            'serviceCharges.name':searchRegex
+        }).populate('userId','username email phoneNumber')
+        .sort({'rating':-1});
+      res.status(200).json(caretaker)
+    }catch(err){
+        res.status(500).json({ errors: 'something went wrong'})
+    }
+}
 careTakerCltr.showone = async(req,res)=>{
     try{
         const caretaker = await CareTaker.findById(req.params.id).populate('userId','username email phoneNumber')

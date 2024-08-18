@@ -53,6 +53,17 @@ userCltr.register = async (req, res) => {
     }
 };
 
+// userCltr.checkAdminAvailability
+userCltr.checkAdminAvailability = async (req, res) => {
+    try {
+        const userCount = await User.countDocuments({});
+        const isAdminAvailable = userCount === 0;
+        res.status(200).json({ isAdminAvailable });
+    } catch (err) {
+        res.status(500).json({ errors: "Something went wrong" });
+    }
+};
+
 // send SMS to register
 userCltr.sendSMS = async (username, phoneNumber, role, otp) => {
     let msgOptions = {
